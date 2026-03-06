@@ -1,0 +1,6 @@
+services:
+  app:
+    build: .
+    image: chat-app-lite
+    ports:
+      - "3000:3000"
