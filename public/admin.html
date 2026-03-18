@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Admin</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="admin-shell">
+        <header class="admin-header">
+            <h1>Chat Admin</h1>
+            <p>Delete all messages, by client, or select specific messages.</p>
+        </header>
+
+        <section id="admin-auth" class="admin-panel">
+            <h2>Unlock Admin Actions</h2>
+            <div class="admin-auth-row">
+                <input id="admin-password" type="password" autocomplete="current-password" placeholder="Admin password" />
+                <button id="unlock-admin-btn" type="button">Unlock</button>
+            </div>
+            <p id="auth-status" class="admin-status"></p>
+        </section>
+
+        <section id="admin-actions" class="admin-panel" hidden>
+            <h2>Delete Operations</h2>
+            <div class="admin-actions-grid">
+                <div class="admin-action-card">
+                    <h3>Delete All Messages</h3>
+                    <p>Remove every persisted message from the database.</p>
+                    <button id="delete-all-btn" type="button" class="danger-btn">Delete All</button>
+                </div>
+
+                <div class="admin-action-card">
+                    <h3>Delete by Client</h3>
+                    <p>Remove all messages for one specific username.</p>
+                    <div class="admin-inline-row">
+                        <input id="client-name" type="text" placeholder="Client name" />
+                        <button id="delete-client-btn" type="button" class="danger-btn">Delete Client</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-panel-subtitle-row">
+                <h3>Manual Selection</h3>
+                <div class="admin-inline-row">
+                    <button id="refresh-list-btn" type="button">Refresh</button>
+                    <button id="select-all-btn" type="button">Select All</button>
+                    <button id="clear-selection-btn" type="button">Clear</button>
+                    <button id="delete-selected-btn" type="button" class="danger-btn">Delete Selected</button>
+                </div>
+            </div>
+
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Select</th>
+                            <th>ID</th>
+                            <th>User</th>
+                            <th>Message</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="messages-table-body"></tbody>
+                </table>
+            </div>
+
+            <p id="action-status" class="admin-status"></p>
+        </section>
+    </main>
+
+    <script src="admin.js"></script>
+</body>
+</html>

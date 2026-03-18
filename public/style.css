@@ -10,6 +10,18 @@ body {
     align-items: center;
 }
 
+.admin-link {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    text-decoration: none;
+    background: #1f2937;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
 #login-container {
     background: white;
     padding: 2rem;
@@ -86,4 +98,145 @@ body {
     border-radius: 4px;
     font-size: 16px;
     cursor: pointer;
+}
+
+.admin-shell {
+    width: min(1100px, 95vw);
+    margin: 32px auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.admin-header {
+    text-align: center;
+}
+
+.admin-header h1 {
+    margin-bottom: 8px;
+}
+
+.admin-header p {
+    margin-top: 0;
+    color: #4b5563;
+}
+
+.admin-panel {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+
+.admin-auth-row,
+.admin-inline-row,
+.admin-panel-subtitle-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.admin-auth-row input,
+.admin-inline-row input {
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.admin-auth-row input {
+    min-width: min(300px, 80vw);
+}
+
+.admin-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+}
+
+.admin-action-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px;
+    background: #f8fafc;
+}
+
+.admin-action-card h3 {
+    margin-top: 0;
+}
+
+.admin-action-card p {
+    color: #475569;
+}
+
+.admin-panel-subtitle-row {
+    justify-content: space-between;
+    margin-top: 16px;
+}
+
+.admin-table-wrap {
+    margin-top: 12px;
+    overflow-x: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+}
+
+.admin-table th,
+.admin-table td {
+    border-bottom: 1px solid #e5e7eb;
+    padding: 10px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.admin-table th {
+    background: #f1f5f9;
+    font-size: 14px;
+}
+
+.admin-empty-cell {
+    text-align: center;
+    color: #6b7280;
+    padding: 20px;
+}
+
+.admin-status {
+    min-height: 20px;
+    margin-top: 12px;
+    color: #0f766e;
+}
+
+.admin-status.error {
+    color: #b91c1c;
+}
+
+.danger-btn {
+    background: #b91c1c;
+    color: #fff;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+@media (max-width: 700px) {
+    .admin-shell {
+        margin: 18px auto;
+    }
+
+    .admin-panel {
+        padding: 14px;
+    }
+
+    .admin-panel-subtitle-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
