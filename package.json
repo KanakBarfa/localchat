@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "scripts": {
     "start": "node server.js",
     "build": "esbuild server.js --bundle --platform=node --minify --outfile=dist/bundle.js"
