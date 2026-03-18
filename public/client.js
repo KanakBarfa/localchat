@@ -10,6 +10,27 @@ const messages = document.getElementById('messages');
 
 let username = '';
 
+function renderMessage(data) {
+    const item = document.createElement('li');
+    const strong = document.createElement('strong');
+
+    strong.textContent = data.user + ':';
+
+    if (data.user === null) {
+        item.appendChild(document.createTextNode(data.message));
+        item.style.fontStyle = 'italic';
+        item.style.color = 'gray';
+        item.style.background = 'transparent';
+    }
+    else {
+        item.appendChild(strong);
+        item.appendChild(document.createTextNode(' ' + data.message));
+    }
+
+    messages.appendChild(item);
+    messages.scrollTop = messages.scrollHeight;
+}
+
 joinBtn.addEventListener('click', () => {
     const name = nameInput.value.trim();
     if (name) {
@@ -35,22 +56,10 @@ form.addEventListener('submit', (e) => {
 });
 
 socket.on('message', (data) => {
-    const item = document.createElement('li');
-    const strong = document.createElement('strong');
+    renderMessage(data);
+});
 
-    strong.textContent = data.user + ':';
-
-    if (data.user === null) {
-        item.appendChild(document.createTextNode(data.message));
-        item.style.fontStyle = 'italic';
-        item.style.color = 'gray';
-        item.style.background = 'transparent';
-    }
-    else {
-        item.appendChild(strong);
-        item.appendChild(document.createTextNode(' ' + data.message));
-    }
-
-    messages.appendChild(item);
-    messages.scrollTop = messages.scrollHeight;
+socket.on('history', (history) => {
+    messages.innerHTML = '';
+    history.forEach((data) => renderMessage(data));
 });

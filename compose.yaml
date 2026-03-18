@@ -4,3 +4,8 @@ services:
     image: chat-app-lite
     ports:
       - "3000:3000"
+    volumes:
+      - chat-data:/data
+
+volumes:
+  chat-data:

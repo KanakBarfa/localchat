@@ -1,19 +1,11 @@
-FROM oven/bun:alpine AS builder
+FROM node:20-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN bun install --production
+RUN npm install --omit=dev
 COPY . .
-RUN bun build ./server.js --compile --minify --outfile=chat-server
-
-FROM alpine:latest AS runner
-WORKDIR /app
-
-# Install the missing C++ and GCC libraries
-RUN apk add --no-cache libstdc++ libgcc
-
 ENV NODE_ENV=production
 ENV PORT=3000
-COPY --from=builder /app/chat-server .
-COPY --from=builder /app/public ./public
+ENV MESSAGE_STORE_PATH=/data/messages.json
+VOLUME ["/data"]
 EXPOSE 3000
-CMD ["./chat-server"]
+CMD ["node", "server.js"]
