@@ -20,17 +20,23 @@ async function initDatabase() {
             id BIGSERIAL PRIMARY KEY,
             user_name TEXT,
             message TEXT NOT NULL,
+            event_type TEXT NOT NULL DEFAULT 'chat',
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     `);
+
+    await pool.query('ALTER TABLE messages ADD COLUMN IF NOT EXISTS event_type TEXT');
+    await pool.query("UPDATE messages SET event_type = 'chat' WHERE event_type IS NULL");
+    await pool.query("ALTER TABLE messages ALTER COLUMN event_type SET DEFAULT 'chat'");
+    await pool.query('ALTER TABLE messages ALTER COLUMN event_type SET NOT NULL');
 }
 
 async function loadRecentMessages(limit = MAX_PERSISTED_MESSAGES) {
     const { rows } = await pool.query(
         `
-            SELECT id, user_name, message, created_at
+            SELECT id, user_name, message, event_type, created_at
             FROM (
-                SELECT id, user_name, message, created_at
+                SELECT id, user_name, message, event_type, created_at
                 FROM messages
                 ORDER BY id DESC
                 LIMIT $1
@@ -44,22 +50,29 @@ async function loadRecentMessages(limit = MAX_PERSISTED_MESSAGES) {
         id: row.id,
         user: row.user_name,
         message: row.message,
+        type: row.event_type,
         timestamp: row.created_at
     }));
 }
 
 async function persistMessage(message) {
     const { rows } = await pool.query(
-        'INSERT INTO messages (user_name, message) VALUES ($1, $2) RETURNING id, user_name, message, created_at',
-        [message.user, message.message]
+        'INSERT INTO messages (user_name, message, event_type) VALUES ($1, $2, $3) RETURNING id, user_name, message, event_type, created_at',
+        [message.user, message.message, message.type || 'chat']
     );
 
     return {
         id: rows[0].id,
         user: rows[0].user_name,
         message: rows[0].message,
+        type: rows[0].event_type,
         timestamp: rows[0].created_at
     };
+}
+
+async function deleteMessageById(id) {
+    const result = await pool.query('DELETE FROM messages WHERE id = $1', [id]);
+    return (result.rowCount || 0) > 0;
 }
 
 function getPasswordFromRequest(req) {
@@ -181,6 +194,7 @@ initDatabase().then(() => {
 io.on('connection', (socket) => {
     socket.on('join', async (name) => {
         socket.data.name = name;
+        socket.data.joinMessageId = null;
         console.log(`${name} joined the chat`);
 
         try {
@@ -191,7 +205,18 @@ io.on('connection', (socket) => {
             socket.emit('history', []);
         }
 
-        io.emit('message', { user: null, message: `${name} has joined the chat` });
+        try {
+            const joinEvent = await persistMessage({
+                user: name,
+                message: `${name} has joined the chat`,
+                type: 'join'
+            });
+            socket.data.joinMessageId = joinEvent.id;
+            io.emit('message', joinEvent);
+        } catch (error) {
+            console.error('Failed to persist join event:', error);
+            io.emit('message', { user: null, message: `${name} has joined the chat`, type: 'join' });
+        }
     });
 
     socket.on('message', async (data) => {
@@ -199,7 +224,7 @@ io.on('connection', (socket) => {
             data.message = data.message.substring(0, 200) + '...';
         }
         console.log(`${data.user}: ${data.message}`);
-        const message = { user: data.user, message: data.message };
+        const message = { user: data.user, message: data.message, type: 'chat' };
 
         try {
             const savedMessage = await persistMessage(message);
@@ -210,10 +235,20 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
         if (socket.data.name) {
             console.log(`${socket.data.name} left the chat`);
-            io.emit('message', { user: null, message: `${socket.data.name} has left the chat` });
+
+            if (socket.data.joinMessageId) {
+                try {
+                    await deleteMessageById(socket.data.joinMessageId);
+                    await refreshHistoryForAllClients();
+                } catch (error) {
+                    console.error('Failed to cancel persisted join event on disconnect:', error);
+                }
+            }
+
+            io.emit('message', { user: null, message: `${socket.data.name} has left the chat`, type: 'leave' });
         }
     });
 

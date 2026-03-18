@@ -13,10 +13,11 @@ let username = '';
 function renderMessage(data) {
     const item = document.createElement('li');
     const strong = document.createElement('strong');
+    const isSystemEvent = data.type === 'join' || data.type === 'leave' || data.type === 'system' || data.user === null;
 
     strong.textContent = data.user + ':';
 
-    if (data.user === null) {
+    if (isSystemEvent) {
         item.appendChild(document.createTextNode(data.message));
         item.style.fontStyle = 'italic';
         item.style.color = 'gray';
