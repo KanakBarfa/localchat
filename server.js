@@ -3,81 +3,95 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const path = require('path');
-const fs = require('fs/promises');
+const { Pool } = require('pg');
 
 const PORT = Number(process.env.PORT || 3000);
-const MESSAGE_STORE_PATH = process.env.MESSAGE_STORE_PATH || path.join(__dirname, 'data', 'messages.json');
+const DATABASE_URL = process.env.DATABASE_URL || 'postgres://chat:chat@db:5432/chatapp';
 const MAX_PERSISTED_MESSAGES = Number(process.env.MAX_PERSISTED_MESSAGES || 500);
 
-let persistedMessages = [];
-let writeQueue = Promise.resolve();
+const pool = new Pool({ connectionString: DATABASE_URL });
 
-async function ensureStoreReady() {
-    const storeDir = path.dirname(MESSAGE_STORE_PATH);
-    await fs.mkdir(storeDir, { recursive: true });
-    try {
-        const raw = await fs.readFile(MESSAGE_STORE_PATH, 'utf8');
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-            persistedMessages = parsed;
-        }
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            await fs.writeFile(MESSAGE_STORE_PATH, '[]\n', 'utf8');
-            return;
-        }
-        console.error('Failed to initialize message store:', error);
-    }
+async function initDatabase() {
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS messages (
+            id BIGSERIAL PRIMARY KEY,
+            user_name TEXT,
+            message TEXT NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    `);
 }
 
-function queueStoreWrite() {
-    writeQueue = writeQueue
-        .then(() => fs.writeFile(MESSAGE_STORE_PATH, JSON.stringify(persistedMessages, null, 2) + '\n', 'utf8'))
-        .catch((error) => {
-            console.error('Failed to persist messages:', error);
-        });
+async function loadRecentMessages(limit = MAX_PERSISTED_MESSAGES) {
+    const { rows } = await pool.query(
+        `
+            SELECT user_name, message, created_at
+            FROM (
+                SELECT user_name, message, created_at
+                FROM messages
+                ORDER BY id DESC
+                LIMIT $1
+            ) recent
+            ORDER BY created_at ASC, user_name ASC
+        `,
+        [limit]
+    );
 
-    return writeQueue;
+    return rows.map((row) => ({
+        user: row.user_name,
+        message: row.message,
+        timestamp: row.created_at
+    }));
 }
 
-function persistMessage(message) {
-    persistedMessages.push({
-        user: message.user,
-        message: message.message,
-        timestamp: new Date().toISOString()
-    });
-
-    if (persistedMessages.length > MAX_PERSISTED_MESSAGES) {
-        persistedMessages = persistedMessages.slice(-MAX_PERSISTED_MESSAGES);
-    }
-
-    return queueStoreWrite();
+async function persistMessage(message) {
+    await pool.query(
+        'INSERT INTO messages (user_name, message) VALUES ($1, $2)',
+        [message.user, message.message]
+    );
 }
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-ensureStoreReady().then(() => {
+initDatabase().then(() => {
     http.listen(PORT, '0.0.0.0', () => {
         console.log(`Chat server running on port ${PORT}`);
-        console.log(`Message store: ${MESSAGE_STORE_PATH}`);
+        console.log('Message store: PostgreSQL');
     });
+}).catch((error) => {
+    console.error('Failed to initialize database:', error);
+    process.exit(1);
 });
 
 io.on('connection', (socket) => {
-    socket.on('join', (name) => {
+    socket.on('join', async (name) => {
         socket.data.name = name;
         console.log(`${name} joined the chat`);
-        socket.emit('history', persistedMessages);
+
+        try {
+            const history = await loadRecentMessages();
+            socket.emit('history', history);
+        } catch (error) {
+            console.error('Failed to load message history:', error);
+            socket.emit('history', []);
+        }
+
         io.emit('message', { user: null, message: `${name} has joined the chat` });
     });
 
-    socket.on('message', (data) => {
+    socket.on('message', async (data) => {
         if (data.message.length > 200) {
             data.message = data.message.substring(0, 200) + '...';
         }
         console.log(`${data.user}: ${data.message}`);
         const message = { user: data.user, message: data.message };
-        persistMessage(message);
+
+        try {
+            await persistMessage(message);
+        } catch (error) {
+            console.error('Failed to persist message:', error);
+        }
+
         io.emit('message', message);
     });
 
