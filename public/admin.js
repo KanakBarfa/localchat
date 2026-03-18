@@ -1,5 +1,6 @@
 const passwordInput = document.getElementById('admin-password');
 const unlockButton = document.getElementById('unlock-admin-btn');
+const adminAuthSection = document.getElementById('admin-auth');
 const authStatus = document.getElementById('auth-status');
 const actionStatus = document.getElementById('action-status');
 const adminActions = document.getElementById('admin-actions');
@@ -109,11 +110,13 @@ unlockButton.addEventListener('click', async () => {
 
     try {
         await refreshMessages();
+        adminAuthSection.hidden = true;
         adminActions.hidden = false;
         setStatus(authStatus, 'Admin unlocked.');
         setStatus(actionStatus, 'Loaded latest messages.');
     } catch (error) {
         adminPassword = '';
+        adminAuthSection.hidden = false;
         adminActions.hidden = true;
         setStatus(authStatus, error.message, true);
     }
