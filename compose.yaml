@@ -1,26 +1,32 @@
+# compose.yaml
 services:
   app:
     build: .
     image: chat-app-lite
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgres://chat:chat@db:5432/chatapp
-      - MAX_PERSISTED_MESSAGES=500
-      - ADMIN_PASSWORD=changeme
+      - DATABASE_URL=${DATABASE_URL}
+      - MAX_PERSISTED_MESSAGES=${MAX_PERSISTED_MESSAGES:-500}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   db:
     image: postgres:16-alpine
+    env_file:
+      - .env
     environment:
-      - POSTGRES_DB=chatapp
-      - POSTGRES_USER=chat
-      - POSTGRES_PASSWORD=chat
+      - POSTGRES_DB=${POSTGRES_DB:-chatapp}
+      - POSTGRES_USER=${POSTGRES_USER:-chat}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U chat -d chatapp"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chat} -d ${POSTGRES_DB:-chatapp}"]
       interval: 5s
       timeout: 5s
       retries: 10
