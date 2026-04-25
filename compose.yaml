@@ -1,12 +1,19 @@
 # compose.yaml
 services:
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    image: chat-app-lite-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      app:
+        condition: service_healthy
+
   app:
     build: .
     image: chat-app-lite
-    ports:
-      - "3000:3000"
-    env_file:
-      - .env
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - MAX_PERSISTED_MESSAGES=${MAX_PERSISTED_MESSAGES:-500}
@@ -14,11 +21,16 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"const http=require('http'); const req=http.get('http://127.0.0.1:3000/healthz', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1));\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   db:
     image: postgres:16-alpine
-    env_file:
-      - .env
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-chatapp}
       - POSTGRES_USER=${POSTGRES_USER:-chat}

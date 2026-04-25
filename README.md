@@ -24,7 +24,8 @@ Local Chat is designed for teams, homes, labs, and classrooms that want instant 
 - Backend: Node.js + Express
 - Realtime: Socket.IO
 - Persistence: PostgreSQL
-- Frontend: static files served from `public/`
+- Frontend: static files served by Nginx in a separate container
+- Browser entrypoint: Nginx proxies `/api` and `/socket.io` to the backend
 
 In Docker Compose, the app connects to the `db` service and stores data in a named volume (`pgdata`), so messages survive container restarts and redeploys.
 
@@ -49,6 +50,8 @@ In Docker Compose, the app connects to the `db` service and stores data in a nam
 	```
 	http://localhost:3000/admin
 	```
+
+The frontend container serves the UI and forwards chat/API requests to the backend container on the same Compose network.
 
 ### Option 2: Run with Node.js
 

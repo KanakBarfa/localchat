@@ -2,7 +2,6 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
-const path = require('path');
 const { Pool } = require('pg');
 
 const PORT = Number(process.env.PORT || 3000);
@@ -13,6 +12,10 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 const pool = new Pool({ connectionString: DATABASE_URL });
 
 app.use(express.json());
+
+app.get('/healthz', (_req, res) => {
+    res.status(200).send('ok');
+});
 
 async function initDatabase() {
     await pool.query(`
@@ -114,10 +117,6 @@ async function refreshHistoryForAllClients() {
     io.emit('history', history);
 }
 
-app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-
 app.get('/api/admin/messages', requireAdminAuth, async (req, res) => {
     const limit = Math.max(1, Math.min(Number(req.query.limit) || MAX_PERSISTED_MESSAGES, 5000));
 
@@ -177,8 +176,6 @@ app.delete('/api/admin/messages/selected', requireAdminAuth, async (req, res) =>
         return res.status(500).json({ error: 'Failed to delete selected messages' });
     }
 });
-
-app.use(express.static(path.join(__dirname, 'public')));
 
 initDatabase().then(() => {
     http.listen(PORT, '0.0.0.0', () => {
