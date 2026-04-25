@@ -3,6 +3,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --omit=dev
 COPY server.js ./
+COPY backend ./backend
 ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
